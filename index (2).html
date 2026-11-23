@@ -754,7 +754,7 @@
 <div id="overlay">
   <div id="versionBadge">
     <div id="versionMain">v2.4</div>
-    <div id="versionBug">BF 0</div>
+    <div id="versionBug">BF 1</div>
   </div>
   <div class="card" id="card"></div>
 </div>
@@ -783,7 +783,7 @@
 const GAME_VERSION = {
   major: 2,
   minor: 4,
-  bugFixes: 0
+  bugFixes: 1
 };
 
 const SAVE_KEY = "rc9_checkpoint_v2";
@@ -1275,8 +1275,8 @@ const ENTITY_DB = [
     speedRating: "Extreme (Unobserved)",
     flashReaction: "Stuns & Pushes Back",
     morphology: "A weathered plaster-masked figure draped in a heavy charcoal coat with hollow eye sockets and a fixed, silent scream.",
-    countermeasure: "Keep it inside your field of view while backing toward the next corridor. Use Quick Flash [Q] if cornered to buy 4 seconds to turn.",
-    desc: "Completely paralyzed while inside your camera's field of view (FOV). The instant it leaves your sight, it advances rapidly.",
+    countermeasure: "Keep it inside your field of view while backing toward the next corridor. It cannot move or strike while observed. Use Quick Flash [Q] if cornered.",
+    desc: "Completely paralyzed and unable to attack while inside your camera's field of view (FOV). The instant it leaves your sight, it advances rapidly.",
     drawPortrait: (ctx) => {
       ctx.fillStyle = "#090807"; ctx.fillRect(0,0,84,84);
       ctx.fillStyle = "#161412"; ctx.fillRect(26,34,32,46);
@@ -1611,7 +1611,6 @@ const AudioSys = {
       const now = this.ctx.currentTime;
 
       if (mode === "menu") {
-        // Haunting dark-ambient synth arpeggio + sub drone
         const notes = [110.0, 130.81, 164.81, 196.0, 164.81, 130.81, 123.47, 146.83];
         const freq = notes[this.musicStep % notes.length];
 
@@ -1642,7 +1641,6 @@ const AudioSys = {
           pad.start(now); pad.stop(now + 3.5);
         }
       } else if (mode === "win") {
-        // Warm resolving major-ninth recovery theme
         const chords = [
           [261.63, 329.63, 392.00, 493.88],
           [220.00, 261.63, 329.63, 392.00],
@@ -1662,7 +1660,6 @@ const AudioSys = {
           osc.start(now + idx * 0.08); osc.stop(now + 2.2);
         });
       } else if (mode === "loss") {
-        // Somber descending funeral dirge
         const dirge = [146.83, 138.59, 130.81, 110.0, 98.0, 82.41];
         const freq = dirge[this.musicStep % dirge.length];
         const osc = this.ctx.createOscillator();
@@ -2697,7 +2694,6 @@ function makeSectorWallTexture(sectorIdx) {
     x.fillStyle = "#3d1818"; x.fillRect(0, 128, 256, 128);
     x.fillStyle = "#8a1c1c"; x.fillRect(0, 120, 256, 12);
   } else if (sectorIdx === 8) {
-    // Sector 09: Silvered Mirror Panels
     x.fillStyle = "#355361"; x.fillRect(0, 0, 256, 256);
     x.fillStyle = "rgba(190, 240, 255, 0.25)";
     x.fillRect(14, 14, 104, 228);
@@ -2706,7 +2702,6 @@ function makeSectorWallTexture(sectorIdx) {
     x.strokeRect(14, 14, 104, 228);
     x.strokeRect(138, 14, 104, 228);
   } else {
-    // Sector 10: Sub-Zero Server Core
     x.fillStyle = "#18283b"; x.fillRect(0, 0, 256, 256);
     x.fillStyle = "#0e1724";
     for (let rx = 16; rx < 240; rx += 58) {
@@ -3214,8 +3209,8 @@ const coopState = {
   isHost: false,
   roomCode: "",
   localId: "p_" + Math.random().toString(36).substring(2, 9),
-  peers: {},       // peerId -> { id, charId, x, y, z, yaw, flashlightOn, isDowned, mesh, beam, label }
-  rtcConns: {},    // peerId -> { pc, dc }
+  peers: {},
+  rtcConns: {},
   pendingPc: null,
   pendingDc: null,
   bc: null,
@@ -3281,10 +3276,6 @@ function removeRemotePeerAvatar(pid) {
     try { coopState.rtcConns[pid].pc.close(); } catch (e) {}
     delete coopState.rtcConns[pid];
   }
-}
-
-function clearAllRemoteAvatars() {
-  Object.keys(coopState.peers).forEach(pid => removeRemotePeerAvatar(pid));
 }
 
 function encodeSdpPayload(obj) {
@@ -3553,7 +3544,6 @@ async function joinCoopRoom(rawInput) {
     return;
   }
 
-  // Case A: Short 4-character Room Code -> Instant Same-Browser BroadcastChannel Link
   if (trimmed.length <= 6) {
     const code = trimmed.toUpperCase();
     coopState.active = true;
@@ -3572,7 +3562,6 @@ async function joinCoopRoom(rawInput) {
     return;
   }
 
-  // Case B: Full WebRTC Host Offer Invite Code -> Generate Answer Code for Cross-Device Link
   try {
     const parsed = decodeSdpPayload(trimmed);
     if (!parsed || !parsed.sdp) throw new Error("Invalid Invite Code");
@@ -3755,7 +3744,6 @@ function buildSectorDecor(idx, activeMap, rows, cols, exitCell) {
       obelisk.position.set(0, 1.12, 0.1);
       prop.add(obelisk);
     } else if (idx === 9) {
-      // Thermal Heat Vents every 3rd prop in Sector 10
       if (i % 3 === 0) {
         const ventHousing = new THREE.Mesh(new THREE.BoxGeometry(0.75, 0.65, 0.35), darkMetalMat);
         ventHousing.position.set(0, 0.325, 0);
@@ -3981,10 +3969,8 @@ function updateDustAndLights(dt, nowSec) {
 }
 
 function buildMismatchedDisguiseProp(sectorIdx) {
-  // Always pick a prop that visually clashes with the current sector theme
   const g = new THREE.Group();
   if (sectorIdx !== 3) {
-    // Colorful Wonderland toy block in non-Wonderland sectors
     const blk = new THREE.Mesh(
       new THREE.BoxGeometry(0.62, 0.62, 0.62),
       new THREE.MeshStandardMaterial({ color: 0xd9304c, roughness: 0.45 })
@@ -3997,7 +3983,6 @@ function buildMismatchedDisguiseProp(sectorIdx) {
     band.position.y = 0.31;
     g.add(blk, band);
   } else {
-    // Potted office plant inside Wonderland
     const pot = new THREE.Mesh(
       new THREE.CylinderGeometry(0.24, 0.18, 0.36, 10),
       new THREE.MeshStandardMaterial({ color: 0x6e5434 })
@@ -4266,7 +4251,6 @@ function loadLevel(idx, wardStageOverride = 0, playWakeCutscene = false) {
     if (cutsceneState.howlerRef) cutsceneState.howlerRef.mesh.visible = false;
     document.body.classList.add("cutscene-active");
   } else if (idx === 3) {
-    // Wonderland Entry Cutscene: Painted Host drops down and challenges player to hide & seek
     cutsceneState.active = true;
     cutsceneState.type = "wonderland_intro";
     cutsceneState.timer = 0;
@@ -4328,7 +4312,6 @@ function loadSecureLaboratory() {
   labLight.position.set(11 * CELL, 3.2, 4.5 * CELL);
   scene.add(labLight); overheadLights.push({ light: labLight, baseIntensity: 1.5, flicker: false, isAlarm: false, phase: 0 });
 
-  // Glowing Entry Rift Gate
   const exX = 14.5 * CELL, exZ = 4.5 * CELL;
   const portalGroup = new THREE.Group();
   const ring = new THREE.Mesh(
@@ -4398,7 +4381,6 @@ function updateCutscene(dt) {
   const tag = getCurrentResearcher().speakerTag;
   const d = getCurrentResearcher().dialogue;
 
-  // 1. WAKE-UP INTRO CUTSCENE
   if (cutsceneState.type === "wake_intro") {
     player.y = 0.42 + Math.min(1, t / 4.2) * 1.23;
     player.yaw = Math.PI + Math.sin(t * 1.1) * 0.48;
@@ -4421,7 +4403,6 @@ function updateCutscene(dt) {
     return;
   }
 
-  // 2. WONDERLAND PAINTED HOST ENTRY CUTSCENE
   if (cutsceneState.type === "wonderland_intro") {
     const host = cutsceneState.hostRef;
     player.yaw = Math.PI;
@@ -4464,7 +4445,6 @@ function updateCutscene(dt) {
     return;
   }
 
-  // 3. WARD CHASE BREACH CUTSCENE
   if (cutsceneState.type === "ward_chase_intro") {
     const howler = cutsceneState.howlerRef;
     const shake = (t > 1.8 && t < 3.4) ? (Math.random() - 0.5) * 0.08 : 0;
@@ -4515,7 +4495,6 @@ function updateCutscene(dt) {
     return;
   }
 
-  // 4. WARD BLAST-DOOR ESCAPE CUTSCENE -> ADVANCES TO SECTOR 09
   if (cutsceneState.type === "ward_escape") {
     camera.position.set(player.x, 1.65, player.z);
     camera.rotation.order = "YXZ";
@@ -4551,7 +4530,7 @@ function updateCutscene(dt) {
       cutsceneState.active = false;
       document.body.classList.remove("cutscene-active");
       cap.textContent = "";
-      startDoorTransition(8); // Transition into Sector 09 // Mirror Labyrinth
+      startDoorTransition(8);
     }
   }
 }
@@ -4617,7 +4596,6 @@ function triggerQuickFlash() {
     } else if (ent.type === "THE HOWLER") {
       speakPlayerLine(d.flashHowler, 3.0);
     } else if (ent.type === "THE WHISPERER") {
-      // Flees for 5 full seconds after being Quick Flashed!
       ent.fleeTimer = 5.0;
       ent.stunTimer = 0;
       speakPlayerLine(d.flashWhisperer, 3.4);
@@ -4650,7 +4628,6 @@ function interact() {
 
   if (player.isDowned) return;
 
-  // 1. Revive Downed Co-Op Teammate
   if (coopState.active) {
     for (const peer of Object.values(coopState.peers)) {
       if (peer.isDowned && Math.hypot(player.x - peer.x, player.z - peer.z) < 2.4) {
@@ -4663,7 +4640,6 @@ function interact() {
     }
   }
 
-  // 2. Read Field Note
   for (const n of notes) {
     if (Math.hypot(player.x - n.x, player.z - n.z) < 2.2) {
       document.getElementById("noteTitle").textContent = n.title;
@@ -4678,7 +4654,6 @@ function interact() {
     }
   }
 
-  // 3. Pick Up Field Supply into 5-Slot Inventory
   for (const s of supplies) {
     if (!s.collected && Math.hypot(player.x - s.x, player.z - s.z) < 2.1) {
       s.collected = true;
@@ -4692,7 +4667,6 @@ function interact() {
     }
   }
 
-  // 4. Collect Sector Objective Anchor
   const l = LEVELS[currentLevelIdx];
   for (let i = 0; i < collectibles.length; i++) {
     const c = collectibles[i];
@@ -4722,7 +4696,6 @@ function interact() {
     }
   }
 
-  // 5. Interact with Exit Door / Ward Double Doors / Lab Portal
   if (exitDoor && Math.hypot(player.x - exitDoor.x, player.z - exitDoor.z) < 2.6) {
     const d = getCurrentResearcher().dialogue;
     if (currentLevelIdx === 10) {
@@ -4829,23 +4802,23 @@ function pollGamepad() {
     return cur && !prev;
   };
 
-  if (justPressed(9)) { // Start / Options -> Pause
+  if (justPressed(9)) {
     if (gameState === "playing") openPauseMenu();
     else if (gameState === "paused") closePauseMenu();
   }
   if (gameState === "playing") {
-    if (justPressed(0)) interact(); // A / Cross
-    if (justPressed(2)) toggleFlashlight(); // X / Square
-    if (justPressed(5)) triggerQuickFlash(); // RB / R1
-    if (justPressed(14)) { // D-Pad Left
+    if (justPressed(0)) interact();
+    if (justPressed(2)) toggleFlashlight();
+    if (justPressed(5)) triggerQuickFlash();
+    if (justPressed(14)) {
       selectedSlotIdx = (selectedSlotIdx + 4) % 5;
       renderInventoryUI();
     }
-    if (justPressed(15)) { // D-Pad Right
+    if (justPressed(15)) {
       selectedSlotIdx = (selectedSlotIdx + 1) % 5;
       renderInventoryUI();
     }
-    if (justPressed(3)) { // Y / Triangle -> Use selected pack slot
+    if (justPressed(3)) {
       useInventorySlot(selectedSlotIdx);
     }
   }
@@ -4874,14 +4847,12 @@ function updatePlayer(dt) {
 
   document.getElementById("cloakVignette").style.opacity = player.cloakTimer > 0 ? "1" : "0";
 
-  // Gamepad Right Stick Camera Look
   if (gamepadState.connected && (gamepadState.lookX !== 0 || gamepadState.lookY !== 0)) {
     const turnRate = 2.4 * userSettings.sensitivity;
     player.yaw -= gamepadState.lookX * turnRate * dt;
     player.pitch = Math.max(-1.15, Math.min(1.15, player.pitch - gamepadState.lookY * turnRate * 0.75 * dt));
   }
 
-  // Movement input (Keyboard + Virtual Joystick + Gamepad Left Stick)
   let forwardInput = 0, strafeInput = 0;
   if (keys["KeyW"] || keys["ArrowUp"]) forwardInput += 1;
   if (keys["KeyS"] || keys["ArrowDown"]) forwardInput -= 1;
@@ -4908,7 +4879,6 @@ function updatePlayer(dt) {
     }
   }
 
-  // Sub-Zero Server Core (Sector 10) Body Heat Mechanic
   const l = LEVELS[currentLevelIdx];
   const heatRow = document.getElementById("heatRow");
   const frostVig = document.getElementById("frostVignette");
@@ -4939,9 +4909,9 @@ function updatePlayer(dt) {
     if (frostVig) frostVig.style.opacity = "0";
   }
 
-  // Mental Sanity Erosion in Darkness (Outside Safe Lab)
+  // Slower, fairer passive Mental Sanity decay
   if (currentLevelIdx < 10 && !godMode && !player.isDowned) {
-    const darkDrain = (!player.flashlightOn || player.battery <= 0.5) ? 1.45 : 0.22;
+    const darkDrain = (!player.flashlightOn || player.battery <= 0.5) ? 0.55 : 0.06;
     const prevSan = player.sanity;
     player.sanity = Math.max(0, player.sanity - darkDrain * dt);
     runStats.sanityLost += Math.max(0, prevSan - player.sanity);
@@ -4962,10 +4932,9 @@ function updatePlayer(dt) {
     }
   }
 
-  // Calculate Movement Speed
   let speed = player.isDowned ? 0.85 : (canSprint ? 5.65 : 3.25);
-  if (currentLevelIdx === 2) speed *= 0.84; // Drowned Atrium ankle-deep water
-  if (l && l.isSubZero && player.bodyHeat < 35) speed *= 0.74; // Shivering slowdown
+  if (currentLevelIdx === 2) speed *= 0.84;
+  if (l && l.isSubZero && player.bodyHeat < 35) speed *= 0.74;
   if (player.speedBoostTimer > 0) speed *= 1.38;
 
   const sinY = Math.sin(player.yaw), cosY = Math.cos(player.yaw);
@@ -4975,7 +4944,6 @@ function updatePlayer(dt) {
   if (canMoveTo(player.x + vx, player.z)) player.x += vx;
   if (canMoveTo(player.x, player.z + vz)) player.z += vz;
 
-  // Head Bob & Footstep Audio
   if (mag > 0.1 && !player.isDowned) {
     player.bobTimer += dt * (canSprint ? 13 : 8.5);
     AudioSys.stepTimer -= dt * (canSprint ? 1.55 : 1.0);
@@ -4987,7 +4955,6 @@ function updatePlayer(dt) {
     player.bobTimer = 0;
   }
 
-  // Record path history for The Deep Copy
   if (player.pathHistory.length === 0 || Math.hypot(player.x - player.pathHistory[player.pathHistory.length - 1].x, player.z - player.pathHistory[player.pathHistory.length - 1].z) > 0.35) {
     player.pathHistory.push({ x: player.x, z: player.z });
     if (player.pathHistory.length > 40) player.pathHistory.shift();
@@ -5003,7 +4970,6 @@ function updatePlayer(dt) {
     : 0;
   lensMesh.material.color.setHex(player.flashlightOn && player.battery > 0 ? 0xfff5d6 : 0x22201c);
 
-  // Sync Local Player State to Co-Op Peers
   if (coopState.active) {
     const now = performance.now();
     if (now - coopState.lastSyncTime > 65) {
@@ -5035,7 +5001,6 @@ function applyPlayerDamage(amount, killerType) {
   setTimeout(() => df.style.opacity = "0", 180);
 
   if (player.health <= 0) {
-    // In Co-Op, go Downed if at least one ally is still standing!
     const standingPeers = coopState.active
       ? Object.values(coopState.peers).filter(p => !p.isDowned)
       : [];
@@ -5073,7 +5038,10 @@ function updateEntities(dt, nowSec) {
     const dz = player.z - ent.z;
     const dist = Math.hypot(dx, dz) || 0.001;
     const dirToPlayer = new THREE.Vector3(dx / dist, 0, dz / dist);
-    const inFOV = forward.dot(dirToPlayer) > 0.58;
+    // Player forward vector is (-sin(yaw), 0, -cos(yaw)); vector from player to entity is (-dx/dist, 0, -dz/dist)
+    const dotFromPlayer = forward.x * (-dx / dist) + forward.z * (-dz / dist);
+    const halfFovCos = Math.cos(((userSettings.fov || 72) * 0.56) * (Math.PI / 180));
+    const inFOV = dotFromPlayer >= halfFovCos;
 
     // Ambient Entity Audio
     ent.soundTimer -= dt;
@@ -5082,9 +5050,9 @@ function updateEntities(dt, nowSec) {
       AudioSys.playEntitySound(ent.type, dist, { enraged: ent.enraged, agitated: ent.agitated });
     }
 
-    // Sanity Drain when staring closely at anomalies
-    if (inFOV && dist < 8.5 && !godMode && !player.isDowned) {
-      const sDrain = 2.6 * dt;
+    // Gentle Sanity drain when looking closely at active anomalies (excluding observation-locked statues)
+    if (inFOV && dist < 7.0 && !godMode && !player.isDowned && ent.type !== "THE STILLFRAME") {
+      const sDrain = 0.85 * dt;
       player.sanity = Math.max(0, player.sanity - sDrain);
       runStats.sanityLost += sDrain;
     }
@@ -5142,12 +5110,13 @@ function updateEntities(dt, nowSec) {
     // Per-Entity Movement Rules
     let moveSpeed = ent.speed;
     let targetX = player.x, targetZ = player.z;
+    let frozenByGaze = false;
 
     if (ent.type === "THE STILLFRAME" || ent.type === "THE REFLECTION") {
-      if (inFOV && dist < 16) {
+      if (inFOV && dist < 24) {
         moveSpeed = 0;
+        frozenByGaze = true;
         if (ent.type === "THE REFLECTION") {
-          // Mirrors player's lateral strafe while watched
           const lateral = Math.sin(nowSec * 3.2) * 1.4 * dt;
           const perpX = -dz / dist, perpZ = dx / dist;
           if (canMoveTo(ent.x + perpX * lateral, ent.z + perpZ * lateral, 0.35)) {
@@ -5209,7 +5178,7 @@ function updateEntities(dt, nowSec) {
     const tdx = targetX - ent.x;
     const tdz = targetZ - ent.z;
     const tdist = Math.hypot(tdx, tdz) || 1;
-    if (moveSpeed > 0.05) {
+    if (moveSpeed > 0.05 && !frozenByGaze) {
       const stepX = (tdx / tdist) * moveSpeed * dt;
       const stepZ = (tdz / tdist) * moveSpeed * dt;
       if (canMoveTo(ent.x + stepX, ent.z, 0.36)) ent.x += stepX;
@@ -5219,7 +5188,6 @@ function updateEntities(dt, nowSec) {
 
     ent.mesh.position.set(ent.x, ent.type === "THE HOLLOW BELL" ? Math.sin(nowSec * 4) * 0.08 : 0, ent.z);
 
-    // Animate Howler Rig
     if (ent.type === "THE HOWLER" && ent.mesh.userData.rig) {
       ent.stridePhase += dt * 11;
       const r = ent.mesh.userData.rig;
@@ -5229,9 +5197,9 @@ function updateEntities(dt, nowSec) {
       r.jawPivot.rotation.x = 0.25 + Math.abs(Math.sin(ent.stridePhase * 0.5)) * 0.35;
     }
 
-    // Contact Damage Check
+    // Contact Damage Check (observation-locked statues cannot strike while frozen in FOV)
     const hitRadius = ent.type === "THE HOWLER" ? 1.55 : 0.98;
-    if (dist < hitRadius && !player.isDowned) {
+    if (dist < hitRadius && !player.isDowned && !frozenByGaze) {
       if (ent.type === "THE HOWLER") {
         applyPlayerDamage(100, "THE HOWLER");
       } else {
@@ -5264,11 +5232,9 @@ function updateRadarCanvas() {
   const scale = 3.2;
   const sinY = Math.sin(player.yaw), cosY = Math.cos(player.yaw);
 
-  // Player center dot
   ctx.fillStyle = "#ffffff";
   ctx.beginPath(); ctx.arc(75, 75, 3.5, 0, Math.PI * 2); ctx.fill();
 
-  // Plot Exit Door (Green)
   if (exitDoor) {
     const rx = (exitDoor.x - player.x) * cosY - (exitDoor.z - player.z) * sinY;
     const rz = (exitDoor.x - player.x) * sinY + (exitDoor.z - player.z) * cosY;
@@ -5276,7 +5242,6 @@ function updateRadarCanvas() {
     ctx.fillRect(75 + rx * scale - 3, 75 + rz * scale - 3, 6, 6);
   }
 
-  // Plot Uncollected Objectives (Gold)
   collectibles.forEach(c => {
     if (c.collected) return;
     const rx = (c.x - player.x) * cosY - (c.z - player.z) * sinY;
@@ -5285,7 +5250,6 @@ function updateRadarCanvas() {
     ctx.beginPath(); ctx.arc(75 + rx * scale, 75 + rz * scale, 3, 0, Math.PI * 2); ctx.fill();
   });
 
-  // Plot Entities (Red)
   entities.forEach(e => {
     const rx = (e.x - player.x) * cosY - (e.z - player.z) * sinY;
     const rz = (e.x - player.x) * sinY + (e.z - player.z) * cosY;
@@ -5353,7 +5317,6 @@ function updateHUD() {
     cloakRow.style.display = "none";
   }
 
-  // Context Interaction Prompt
   const promptEl = document.getElementById("prompt");
   let promptText = "";
   if (coopState.active) {
@@ -5864,7 +5827,6 @@ document.getElementById("devClearEntBtn").addEventListener("click", () => {
   showWhisper("All active entities despawned.");
 });
 
-// Mouse Look (Pointer Lock)
 renderer.domElement.addEventListener("click", () => {
   if (gameState === "playing" && !mobileMode && document.pointerLockElement !== renderer.domElement) {
     try { renderer.domElement.requestPointerLock(); } catch (e) {}
@@ -5878,7 +5840,6 @@ window.addEventListener("mousemove", (e) => {
   player.pitch = Math.max(-1.2, Math.min(1.2, player.pitch - e.movementY * sens));
 });
 
-// Keyboard Listeners
 window.addEventListener("keydown", (e) => {
   keys[e.code] = true;
 
@@ -5937,7 +5898,6 @@ window.addEventListener("keyup", (e) => {
   keys[e.code] = false;
 });
 
-// Mobile Touch Joystick & Look Zones
 (function initTouchControls() {
   const joyZone = document.getElementById("joyZone");
   const joyKnob = document.getElementById("joyKnob");
@@ -6049,7 +6009,6 @@ function animate(now) {
     if (whisperTimer <= 0) document.getElementById("whisper").style.opacity = "0";
   }
 
-  // Rotate 3D Specimen inside Dossier Modal when open
   if (dossierRenderer && dossierModel && document.getElementById("entityDetailView").style.display === "flex") {
     if (!dossierDragging) dossierYaw += dt * 0.65;
     dossierModel.rotation.y = dossierYaw;
@@ -6059,7 +6018,6 @@ function animate(now) {
   if (gameState === "playing") {
     updateDustAndLights(dt, nowSec);
 
-    // Spin collectible anchors
     collectibles.forEach(c => {
       if (!c.collected) {
         c.mesh.rotation.y += dt * 1.8;
